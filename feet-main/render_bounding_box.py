@@ -1,3 +1,4 @@
+import os
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -6,16 +7,17 @@ from path import my_path
 
 def plot_bbox(image_path, x_cd, y_cd, width, height, angle):
     new_image = plt.imread(image_path)
-
+    # recalculation of all values by percent 
     x_cd = x_cd * 512/100
     y_cd = y_cd * 512/100
     width = width * 512/100
     height = height * 512/100
     angle = angle
-    print(angle)
+    
     plt.imshow(new_image)
     plt.gca().add_patch(plt.Rectangle((x_cd, y_cd), width, height, angle=angle, edgecolor='r', linewidth=2, fill=False))
-    plt.savefig('/Users/HP/src/feet_fracture_data/complete')
+    save_path = os.path.join('/Users/HP/src/feet_fracture_data/complete/', f"{row['image']}.png") 
+    plt.savefig('/Users/HP/src/feet_fracture_data/complete/')
     plt.show()
 
 
@@ -41,10 +43,12 @@ def main():
         y_cd = row['value_y']
         width = row['value_width']
         height = row['value_height']
-        angle = row['value_rotation']
+        #angle = row['value_rotation']
+        angle = 25
 
         plot_bbox(image_path, x_cd, y_cd, width, height, angle)
 
 
 if __name__ == "__main__":
+    save_path = my_path
     main()
