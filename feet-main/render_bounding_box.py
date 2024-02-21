@@ -15,18 +15,20 @@ def plot_bbox(image_path, x_cd, y_cd, width, height, angle):
     original_width_img2 = 864
     original_height_img2 = 864
 
-    x_cd = x_cd * original_width_img2/100
-    y_cd = y_cd * original_height_img2/100
-    width = width * original_width_img2/100
-    height = height * original_height_img2/100
+    original_width_img5 = 768
+    original_height_img5 = 768
+
+    x_cd = x_cd * original_width_img5/100
+    y_cd = y_cd * original_height_img5/100
+    width = width * original_width_img5/100
+    height = height * original_height_img5/100
     angle = angle
     
     plt.imshow(new_image)
     
     plt.gca().add_patch(plt.Rectangle((x_cd, y_cd), width, height, angle=angle, edgecolor='r', linewidth=2, fill=False))
-    #save_path = os.path.join('/Users/HP/src/feet_fracture_data/complete/', "bbox.png") 
-    #plt.savefig('/Users/HP/src/feet_fracture_data/complete/')
 
+    # also save the image in a folder
     plt.show()
 
 
@@ -43,7 +45,6 @@ def main():
 #    heights = df['value_width'].to_list()
 #    widths = df['value_height'].to_list()
 
-
     #image_paths = ['/Users/HP/src/feet_fracture_data/P001 SAGT1/MRI ANKLE (LEFT) W_O CONT_5891215/'+str(image) for image in images]
     #subset_df = df.iloc[78:79]
     '''
@@ -59,6 +60,10 @@ def main():
     '''
     image_path_1 = '/Users/HP/src/feet_fracture_data/P093 SAGT1/MRI ANKLE (LEFT) W_O CONT_5227736/P093 SAGT1_012.jpg'
     image_path_2 = '/Users/HP/src/feet_fracture_data/P056 SAGT1/MRI ANKLE (LEFT) W_O CONT_5660928/P056 SAGT1_007.jpg'
+    image_path_3 = '/Users/HP/src/feet_fracture_data/P071 SAGT1/MRI ANKLE (RIGHT) W_O CONT_5499874/P071 SAGT1_010.jpg'
+    image_path_4 = '/Users/HP/src/feet_fracture_data/P081 SAGT1/MRI ANKLE (LEFT) W_O CONT_5390016/P081 SAGT1_014.jpg'
+    image_path_5 = '/Users/HP/src/feet_fracture_data/P094 SAGT1/MRI ANKLE (LEFT) W_O CONT_5161319/P094 SAGT1_015.jpg'
+
     x_cd1 = 85.07191759
     y_cd1 = 73.01503272
     width1 = 2.190576548
@@ -70,9 +75,28 @@ def main():
     width2 = 2.283105023
     height2 = 3.348554033
     angle2 = 333.8531588
-    								
-    plot_bbox(image_path_2, x_cd2, y_cd2, width2, height2, angle2)
+    #angle2 = 0
 
+    x_cd3 = 85.12949601
+    y_cd3 = 71.86164346
+    width3 = 2.287633373
+    height3 =  10.55276382
+    angle3 = 35.1455455	
+
+    x_cd4 = 27.30806449
+    y_cd4 = 61.54141892
+    width4 = 2.344150774
+    height4 = 8.358208955
+    angle4 = 332.6125778	
+    
+    x_cd5 = 28.49476121
+    y_cd5 = 60.23490845
+    width5 = 2.40609887
+    height5 = 6.088280061
+    angle5 = 329.2158535
+
+    				
+    plot_bbox(image_path_5, x_cd5, y_cd5, width5, height5, angle5)
 
 if __name__ == "__main__":
     save_path = my_path
