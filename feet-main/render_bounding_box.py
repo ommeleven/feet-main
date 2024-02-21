@@ -18,10 +18,11 @@ def plot_bbox(image_path, x_cd, y_cd, width, height, angle):
     original_width_img5 = 768
     original_height_img5 = 768
 
-    x_cd = x_cd * original_width_img5/100
-    y_cd = y_cd * original_height_img5/100
-    width = width * original_width_img5/100
-    height = height * original_height_img5/100
+    x_cd = x_cd * original_width_img2/100
+    y_cd = y_cd * original_height_img2/100
+    width = width * original_width_img2/100
+    height = height * original_height_img2/100
+    print(x_cd, y_cd)
     angle = angle
     
     plt.imshow(new_image)
@@ -63,6 +64,7 @@ def main():
     image_path_3 = '/Users/HP/src/feet_fracture_data/P071 SAGT1/MRI ANKLE (RIGHT) W_O CONT_5499874/P071 SAGT1_010.jpg'
     image_path_4 = '/Users/HP/src/feet_fracture_data/P081 SAGT1/MRI ANKLE (LEFT) W_O CONT_5390016/P081 SAGT1_014.jpg'
     image_path_5 = '/Users/HP/src/feet_fracture_data/P094 SAGT1/MRI ANKLE (LEFT) W_O CONT_5161319/P094 SAGT1_015.jpg'
+    image_path_6 = '/Users/HP/src/feet_fracture_data/P028 SAGT1/MRI ANKLE (LEFT) W_O CONT_5814932/P028 SAGT1_015.jpg'
 
     x_cd1 = 85.07191759
     y_cd1 = 73.01503272
@@ -94,9 +96,14 @@ def main():
     width5 = 2.40609887
     height5 = 6.088280061
     angle5 = 329.2158535
-
-    				
-    plot_bbox(image_path_5, x_cd5, y_cd5, width5, height5, angle5)
+    # image 5 has dimensions 768 x 768
+    x_cd6 = 89.16614457
+    y_cd6 = 79.83503301
+    width6 = 2.550695498
+    height6 = 8.797701843
+    angle6 = 22.83365418
+    							
+    plot_bbox(image_path_6, x_cd6, y_cd6, width6, height6, angle6)
 
 if __name__ == "__main__":
     save_path = my_path
