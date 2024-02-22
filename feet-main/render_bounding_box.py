@@ -12,22 +12,21 @@ def plot_bbox(image_path, x_cd, y_cd, width, height, angle):
     original_width_img1 = 640
     original_height_img1 = 640
     
-    original_width_img2 = 864
-    original_height_img2 = 864
+    original_width_img2to4 = 864
+    original_height_img2to4 = 864
 
     original_width_img5 = 768
     original_height_img5 = 768
 
-    x_cd = x_cd * original_width_img2/100
-    y_cd = y_cd * original_height_img2/100
-    width = width * original_width_img2/100
-    height = height * original_height_img2/100
-    print(x_cd, y_cd)
+    x_cd = x_cd * original_width_img2to4/100
+    y_cd = y_cd * original_height_img2to4/100
+    width = width * original_width_img2to4/100
+    height = height * original_height_img2to4/100
     angle = angle
     
     plt.imshow(new_image)
     
-    plt.gca().add_patch(plt.Rectangle((x_cd, y_cd), width, height, angle=angle, edgecolor='r', linewidth=2, fill=False))
+    plt.gca().add_patch(plt.Rectangle((x_cd, y_cd), width, height, angle=angle, edgecolor='r', linewidth=1, fill=False))
 
     # also save the image in a folder
     plt.show()
