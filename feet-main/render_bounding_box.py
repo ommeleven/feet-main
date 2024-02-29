@@ -39,6 +39,12 @@ def main():
     csv_path = '/Users/HP/src/feet_fracture_data/json_data/sag_T1_json_columns/annotations/results_box_cleaned_calculation.csv'
     df = pd.read_csv(csv_path)
 
+    for index, row in df.iterrows():
+        image = df['image'].to_string(index=False)
+        image_path = os.path.abspath(image)
+        print('image_path: ', image_path)
+        break
+'''
 #    images = df['image'].to_list()
 #    x_cds = df['value_x'].to_list()
 #    y_cds = df['value_y'].to_list()
@@ -47,7 +53,7 @@ def main():
 
     #image_paths = ['/Users/HP/src/feet_fracture_data/P001 SAGT1/MRI ANKLE (LEFT) W_O CONT_5891215/'+str(image) for image in images]
     #subset_df = df.iloc[78:79]
-    '''
+    
     for index, row in subset_df.iterrows():
         
         image_path = '/Users/HP/src/feet_fracture_data/P093 SAGT1/MRI ANKLE (LEFT) W_O CONT_5227736/' + row['image']
@@ -57,7 +63,7 @@ def main():
         height = row['value_height']
         angle = row['value_rotation']
         #angle = 25
-    '''
+    
     image_path_1 = '/Users/HP/src/feet_fracture_data/P093 SAGT1/MRI ANKLE (LEFT) W_O CONT_5227736/P093 SAGT1_012.jpg'
     image_path_2 = '/Users/HP/src/feet_fracture_data/P056 SAGT1/MRI ANKLE (LEFT) W_O CONT_5660928/P056 SAGT1_007.jpg'
     image_path_3 = '/Users/HP/src/feet_fracture_data/P071 SAGT1/MRI ANKLE (RIGHT) W_O CONT_5499874/P071 SAGT1_010.jpg'
@@ -103,7 +109,7 @@ def main():
     angle6 = 22.83365418
     							
     plot_bbox(image_path_6, x_cd6, y_cd6, width6, height6, angle6)
-
+    '''
 if __name__ == "__main__":
     save_path = my_path
     main()
