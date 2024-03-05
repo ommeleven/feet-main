@@ -5,7 +5,7 @@ from PIL import Image
 
 def crop_the_box():
     df = pd.read_csv(csv_path)
-    print(df.head())
+    #print(df.head())
     for root, dirs, files in os.walk(folder_path):
         if files:
             patient = os.path.basename(os.path.dirname(root))  
@@ -50,7 +50,7 @@ def main():
 
 if __name__ == '__main__':
     #csv_path = os.path.join(my_path, 'json_data', 'sag_T1_json_columns', 'annotations', 'results_box_cleaned_calculation.csv')
-    csv_path = '/Users/HP/src/feet_fracture_data/json_data/sag_T1_json_columns/annotations'
+    csv_path = '/Users/HP/src/feet_fracture_data/json_data/sag_T1_json_columns/annotations/results_box_cleaned_calculation1.csv'
     folder_path = os.path.join(my_path, '06192023 SFI renamed')
     image_path = os.path.join(folder_path, 'P001 SAGIR', 'MRI ANKLE (LEFT) W_O CONT_5891215', 'P001 SAGIR_010.jpg')
 

@@ -18,10 +18,10 @@ def plot_bbox(image_path, x_cd, y_cd, width, height, angle):
     original_width_img5 = 768
     original_height_img5 = 768
 
-    x_cd = x_cd * original_width_img2to4/100
-    y_cd = y_cd * original_height_img2to4/100
-    width = width * original_width_img2to4/100
-    height = height * original_height_img2to4/100
+    x_cd = x_cd * original_width_img1/100
+    y_cd = y_cd * original_height_img1/100
+    width = width * original_width_img1/100
+    height = height * original_height_img1/100
     angle = angle
     
     plt.imshow(new_image)
@@ -43,7 +43,7 @@ def main():
         image = df['image'].to_string(index=False)
         image_path = os.path.abspath(image)
         print('image_path: ', image_path)
-        break
+        exit(0)
 '''
 #    images = df['image'].to_list()
 #    x_cds = df['value_x'].to_list()

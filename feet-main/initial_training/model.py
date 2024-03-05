@@ -33,8 +33,10 @@ class CustomImageDataset(Dataset):
                     image_path = os.path.join(label_path, image_name)
                     self.image_paths.append(image_path)
                     if label == 'Negative':
+                        print('label:', label)
                         label = 0
                     elif label == 'Positive':
+                        print('label:', label)
                         label = 1
                     self.labels.append(int(label))
                     self.image_names.append(image_name)
