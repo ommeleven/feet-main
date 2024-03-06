@@ -1,14 +1,12 @@
 import csv
 
-def count_non_zero_values(csv_file, column_name, limit=100):
+def count_non_zero_values(csv_file, column_name):
     non_zero_count = 0
     
     with open(csv_file, 'r') as file:
         reader = csv.DictReader(file)
         
         for i, row in enumerate(reader):
-            if i >= limit:
-                break
     
             value = row.get(column_name)
             if value is not None and value != '' and float(value) != 0:
