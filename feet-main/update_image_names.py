@@ -18,39 +18,38 @@ def get_png_full_path(file):
       str: Full path of the file if found, None otherwise.
   """
   current_dir = my_path
+  count = 0
   for root, dirs, files in os.walk(current_dir):
       if files:
           for filename in files:
-              if filename.lower().endswith(('.jpg', '.jpeg', '.png')) and filename == file:
+              if filename.lower().endswith(('.jpg', '.jpeg', '.png')) and filename != file:
+                  count +=1 
+                  
                   image_path = os.path.join(root, filename)
-                  return image_path
-  return None
+                  #return image_path
+  print(count)
+  #return None
+def move_images_to_healthy_folder(my_path, df):
+    #/Users/HP/src/feet_fracture_data/864/validate
+    healthy_folder = os.path.join(my_path, '864', 'validate',"healthy")
+    os.makedirs(healthy_folder, exist_ok=True)
+    
+    for root, dirs, files in os.walk(my_path):
+        for filename in files:
+            if filename.lower().endswith(('.jpg', '.jpeg', '.png')):
+                if filename not in df["image"].values:
+                    src_path = os.path.join(root, filename)
+                    dest_path = os.path.join(healthy_folder, filename)
+                    #print(src_path)
+                    
+                    
+                    #print(dest_path)
+                    shutil.move(src_path, dest_path)
+                    print(f"Moved {filename} to healthy folder.")
 
-def move_to_healthy_folder(image_path, filename):
-    """
-    Moves the image to the 'healthy_images' folder.
-
-    Args:
-        image_path (str): Full path of the image.
-        filename (str): Name of the image file.
-    """
-    # /Users/HP/src/feet_fracture_data/864/validate
-    healthy_images_folder = os.path.join(my_path, '864', 'validate','healthy')
-    if not os.path.exists(healthy_images_folder):
-        os.makedirs(healthy_images_folder)
-    shutil.copy(image_path, os.path.join(healthy_images_folder, filename))
-
-# Test the function
-for index, row in df.iterrows():
-    image_filename = row['image']
-    image_path = get_png_full_path(image_filename)
-    if image_path:
-        df.at[index, 'image_path'] = image_path
-    else:
-        move_to_healthy_folder(image_filename, os.path.basename(image_filename))
-
-print(df.head())
-df.to_csv(os.path.join(my_path, 'json_data', 'sag_T1_json_columns', 'annotations', 'results_box_cleaned_calculation.csv'), index=False)
+move_images_to_healthy_folder(my_path, df)                  #
+#print(df.head())
+#df.to_csv(os.path.join(my_path, 'json_data', 'sag_T1_json_columns', 'annotations', 'results_box_cleaned_calculation.csv'), index=False)
 
 #filename = "P001 SAGT1_008.jpg"
 #full_path = get_png_full_path(filename)

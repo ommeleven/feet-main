@@ -89,12 +89,12 @@ def preprocess(train, val):
     # Define the dataset
     train_set = CustomImageDataset(train, transform=transformations)
     val_set = CustomImageDataset(val, transform=transformations)
-
+    print("train_set: ", len(train_set))
     # Define the batch size
     batch_size = 30
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True)
     val_loader = torch.utils.data.DataLoader(val_set, batch_size=batch_size, shuffle=True)
-
+    
     return train_set, val_set, train_loader, val_loader
 
 def train(epochs):
