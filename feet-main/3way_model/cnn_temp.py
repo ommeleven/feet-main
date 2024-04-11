@@ -203,6 +203,6 @@ if __name__ == '__main__':
     root_dir_864 = os.path.join(my_path, '864')
     train_folder = os.path.join(root_dir_864, 'train')  
     val_folder = os.path.join(root_dir_864, 'validate')
-    directory = "your_directory"
+    directory = os.path.join(root_dir_864, 'accuracy_predictions')
     
     main()
