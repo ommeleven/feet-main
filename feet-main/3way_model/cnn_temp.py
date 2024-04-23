@@ -38,9 +38,25 @@ class CustomImageDataset(Dataset):
 
     def __getitem__(self, idx):
         image_path = self.image_paths[idx]
+        bw_image = Image.open(image_path)
+        image = bw_image.convert("RGB")
+        label = self.labels[idx]
+        image_name = self.image_names[idx]
+
+        if self.transform:
+            image = self.transform(image)
+
+        if self.target_transform:
+            label = self.target_transform(label)
+
+        return image, label, image_name
+        '''
+        image_path = self.image_paths[idx]
         bw_image = Image.open(image_path).convert("L")  # Convert to grayscale
         image = bw_image.resize((512, 512))  # Resize to 512x512
         image = transforms.ToTensor()(image)  # Convert to tensor
+        to_pil = transforms.ToPILImage()
+        image = to_pil(image)
 
         label = self.labels[idx]
         image_name = self.image_names[idx]
@@ -52,6 +68,7 @@ class CustomImageDataset(Dataset):
             label = self.target_transform(label)
 
         return image, label, image_name
+        '''
 
 class MyNetwork(nn.Module):
     def __init__(self): 
@@ -89,7 +106,7 @@ def preprocess(train, val):
     # Define the dataset
     train_set = CustomImageDataset(train, transform=transformations)
     val_set = CustomImageDataset(val, transform=transformations)
-    print("train_set: ", len(train_set))
+    #print("train_set: ", len(train_set))
     # Define the batch size
     batch_size = 30
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True)
@@ -106,7 +123,7 @@ def train(epochs):
     # Adjusted directories accordingly
     csv_directory = os.path.join(directory, 'accuracy_epoch_conf.csv')
 
-    train_set, val_set, train_loader, val_loader = preprocess(train_folder, val_folder)
+    train_set, val_set, train_loader, val_loader = preprocess(train_folder, test_folder)
 
     train_loss = 0
     val_loss = 0
@@ -197,12 +214,13 @@ def train(epochs):
     df_confusion_matrices.to_csv(confusion_matrices_file_path, index=False)
 
 def main():
-    train(50)
+    train(30)
 
 if __name__ == '__main__':
     root_dir_864 = os.path.join(my_path, '864')
-    train_folder = os.path.join(root_dir_864, 'train')  
-    val_folder = os.path.join(root_dir_864, 'validate')
+    #train_folder = os.path.join(root_dir_864, 'train')  76
+    train_folder = '/Users/HP/src/feet_fracture_data/864' + '/train_oversampling'
+    test_folder = os.path.join(root_dir_864, 'test')
     directory = os.path.join(root_dir_864, 'accuracy_predictions')
     
     main()

@@ -1,32 +1,23 @@
 import os
+import numpy as np
+from sklearn.model_selection import train_test_split
+from path import my_path
 import shutil
-import pandas as pd
 
-# Set paths
-image_folder = '/Users/HP/src/feet_fracture_data/864/test/edema/edema'
-fracture_folder = "/Users/HP/src/feet_fracture_data/864/test/fracture"
-healthy_folder = "/Users/HP/src/feet_fracture_data/864/test/validate"
+# Assuming you have already loaded your image dataset and labels
+X = my_path + '/864/train'# Your image data
+y =  my_path + '/864/test' # Your labels (e.g. 'edema', 'fracture', 'healthy' for each class)
+all_images = my_path + '/864/all images/healthy'
+data  = os.listdir(all_images)
+# Split the dataset into training and testing sets (80% train, 20% test)
+#X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Load DataFrame
-csv_path = '/Users/HP/src/feet_fracture_data/json_data/sag_T1_json_columns/annotations/results_box_cleaned_calculation.csv'
-df = pd.read_csv(csv_path)
-
-# List all images in the folder
-image_files = os.listdir(image_folder)
-
-# Function to move images to respective folders
-def move_images(files, source_dir, fracture_dir, healthy_dir):
-    for file in files:
-        if file in df['image'].values:
-            src = os.path.join(source_dir, file)
-            dst = os.path.join(fracture_dir, file)
-            shutil.move(src, dst)
-        else:
-            src = os.path.join(source_dir, file)
-            dst = os.path.join(healthy_dir, file)
-            shutil.move(src, dst)
-
-# Move images to respective folders
-move_images(image_files, image_folder, fracture_folder, healthy_folder)
-
-print("Images moved successfully!")
+train, valid = train_test_split(data, test_size=0.2, random_state=1)
+#print(valid)
+for image in train:
+    source = all_images + '/' + image
+    des = X + f'/healthy' + '/' + image
+    shutil.copy(source, des)
+    print('done')
+print(f"Training data: {len(train)} images")
+# Now you have your training and testing data ready to be used for training and evaluation
