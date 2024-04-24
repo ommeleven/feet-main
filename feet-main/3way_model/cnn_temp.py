@@ -162,7 +162,7 @@ def train(epochs):
                 optimizer.step()
                 train_loss += loss.item() * inputs.size(0)
                 
-                ps = torch.exp(output)
+                ps = torch.exp(output)  
                 top_p, top_class = ps.topk(1, dim=1)
                 equals = top_class == labels.view(*top_class.shape)
                 train_accuracy += torch.mean(equals.type(torch.FloatTensor)).item()
@@ -211,15 +211,15 @@ def train(epochs):
 
     df_confusion_matrices = pd.DataFrame(confusion_matrices)
     confusion_matrices_file_path = os.path.join(directory, 'accuracy_predictions', 'confusion_matrices_Q8.csv')
-    df_confusion_matrices.to_csv(confusion_matrices_file_path, index=False)
+    df_confusion_matrices.to_csv(confusion_matrices_file_path, index=False)    
 
 def main():
     train(30)
 
 if __name__ == '__main__':
     root_dir_864 = os.path.join(my_path, '864')
-    #train_folder = os.path.join(root_dir_864, 'train')  76
-    train_folder = '/Users/HP/src/feet_fracture_data/864' + '/train_oversampling'
+    train_folder = os.path.join(root_dir_864, 'train_undersampling')  
+    #train_folder = '/Users/HP/src/feet_fracture_data/864' + '/train_oversampling'
     test_folder = os.path.join(root_dir_864, 'test')
     directory = os.path.join(root_dir_864, 'accuracy_predictions')
     

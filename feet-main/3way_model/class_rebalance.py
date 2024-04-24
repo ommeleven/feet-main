@@ -7,7 +7,7 @@ def duplicate_images(root):
     images = os.listdir(root)
     for i,image in enumerate(images):
         source = root + '/' + image
-        des = root + '/' + f'{i}{i}_{image}'
+        des = root + '/' + f'{i}{i}_{image[:]}'
         #print(des)
         shutil.copy(source, des)
 
