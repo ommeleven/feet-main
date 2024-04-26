@@ -99,9 +99,17 @@ class MyNetwork(nn.Module):
     
 
 def preprocess(train, val):
+    '''
+    transformations = transforms.Compose([
+    transforms.Resize((512, 512)), # Adjusted from 224x224 to 512x512
+    transforms.ToTensor()])
+    '''
     transformations = transforms.Compose([
     transforms.Resize((224, 224)),
-    transforms.ToTensor()])
+    transforms.ToTensor(),
+    #transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
+
 
     # Define the dataset
     train_set = CustomImageDataset(train, transform=transformations)
@@ -214,12 +222,12 @@ def train(epochs):
     df_confusion_matrices.to_csv(confusion_matrices_file_path, index=False)    
 
 def main():
-    train(30)
+    train(5)
 
 if __name__ == '__main__':
     root_dir_864 = os.path.join(my_path, '864')
-    train_folder = os.path.join(root_dir_864, 'train_undersampling')  
-    #train_folder = '/Users/HP/src/feet_fracture_data/864' + '/train_oversampling'
+    #train_folder = os.path.join(root_dir_864, 'train_undersampling')  
+    train_folder = '/Users/HP/src/feet_fracture_data/864' + '/train_oversampling'
     test_folder = os.path.join(root_dir_864, 'test')
     directory = os.path.join(root_dir_864, 'accuracy_predictions')
     
