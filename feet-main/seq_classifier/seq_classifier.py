@@ -1,14 +1,13 @@
 import torch
 import torchvision.transforms as transforms
-import torchvision.datasets as datasets
+from torchvision.datasets import ImageFolder
 import torch.nn as nn
 import torch.optim as optim
 import pandas as pd
 from sklearn.metrics import confusion_matrix
-import csv
 import os
 from PIL import Image
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 import matplotlib.pyplot as plt
 
 from path import my_path
@@ -19,7 +18,7 @@ class CustomImageDataset(Dataset):
         self.transform = transform
         self.target_transform = target_transform
 
-        self.classes = ['fracture', 'edema', 'healthy']
+        self.classes = ['fracture', 'edema']  # Only two classes
         self.image_paths = []
         self.labels = []
         self.image_names = []
@@ -31,7 +30,7 @@ class CustomImageDataset(Dataset):
                 for image_name in os.listdir(label_path):
                     image_path = os.path.join(label_path, image_name)
                     self.image_paths.append(image_path)
-                    self.labels.append(label_idx)  # Assigning index as label
+                    self.labels.append(label_idx) 
                     self.image_names.append(image_name)
 
     def __len__(self):
@@ -39,9 +38,9 @@ class CustomImageDataset(Dataset):
 
     def __getitem__(self, idx):
         image_path = self.image_paths[idx]
-        bw_image = Image.open(image_path)
-        image = bw_image.resize((224, 224))  # Resize to 512x512
-        image = image.convert("RGB")  # Convert to grayscale
+        image = Image.open(image_path).convert('L')  # Convert to grayscale
+        image = image.resize((512, 512))  # Resize image to 512x512
+
         label = self.labels[idx]
         image_name = self.image_names[idx]
 
@@ -55,63 +54,34 @@ class CustomImageDataset(Dataset):
 
 class MyNetwork(nn.Module):
     def __init__(self): 
-
         super(MyNetwork, self).__init__()
         self.features = nn.Sequential(
-            nn.Conv2d(3, 6, 5),
+            nn.Conv2d(1, 6, 5),  # Only one input channel for grayscale images
             nn.ReLU(),
             nn.MaxPool2d(2, 2),
             nn.Conv2d(6, 16, 5),
             nn.ReLU(),
-            nn.MaxPool2d(2, 2),            
-        )
-
-        self.classifier = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(53*53*16, 1024),
-            nn.ReLU(),
-            nn.Linear(1024, 512),
-            nn.ReLU(),
-            nn.Linear(512, 3),  # Adjusted for 3 classes
-            nn.LogSoftmax(dim=1)
-        )
-
-        '''
-        self.features = nn.Sequential(
-            nn.Conv2d(1, 6, 5),
-            nn.ReLU(),
             nn.MaxPool2d(2, 2),
-            nn.Conv2d(6, 16, 5),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),            
         )
 
-        
+        #  size for the first linear layer:
+        # (512 - 4) / 2 = 254 (after first pooling)
+        # (254 - 4) / 2 = 125 (after second pooling)
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(253*253*16, 1024),
+            nn.Linear(125*125*16, 1024),
             nn.ReLU(),
             nn.Linear(1024, 512),
             nn.ReLU(),
-            nn.Linear(512, 3),  # Adjusted for 3 classes
+            nn.Linear(512, 2),  # Output for 2 classes
             nn.LogSoftmax(dim=1)
         )
         
-        self.classifier = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(41472, 256),  # Adjusted input size from 53*53*16 to 41472
-            nn.ReLU(),
-            nn.Linear(256, 3),  # Adjusted for 3 classes
-            nn.LogSoftmax(dim=1)
-        )
-        '''
-        
-
     def forward(self, x):
         x = self.features(x)
         x = self.classifier(x)
         return x
-    
+
 
 def preprocess(train, val):
     transformations = transforms.Compose([
@@ -242,7 +212,7 @@ def plot_results(train_loss_list, val_loss_list, train_acc_list, val_acc_list):
     plt.ylabel('Accuracy')
     plt.legend()
 
-    plt.tight_layout()
+    plt.tight_layout() 
     plt.show()
 
 def save_confusion_matrices(confusion_matrices):
@@ -251,12 +221,12 @@ def save_confusion_matrices(confusion_matrices):
     df_confusion_matrices.to_csv(confusion_matrices_file_path, index=False)    
 
 def main():
-    train(50)
+    train(5)
 
 if __name__ == '__main__':
     root_dir_864 = os.path.join(my_path, '864')
-    train_folder = os.path.join(root_dir_864, 'train_st')
-    test_folder = os.path.join(root_dir_864, 'test_st')
+    train_folder = os.path.join(root_dir_864, 'train_st_bin')
+    test_folder = os.path.join(root_dir_864, 'test_st_bin')
     directory = os.path.join(root_dir_864)
     
     main()
