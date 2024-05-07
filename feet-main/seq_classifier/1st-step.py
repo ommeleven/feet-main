@@ -18,7 +18,7 @@ class CustomImageDataset(Dataset):
         self.transform = transform
         self.target_transform = target_transform
 
-        self.classes = ['fracture', 'edema']  # Only two classes
+        self.classes = ['healthy', 'unhealthy']  # Only two classes
         self.image_paths = []
         self.labels = []
         self.image_names = []
@@ -217,7 +217,8 @@ def plot_results(train_loss_list, val_loss_list, train_acc_list, val_acc_list):
 
 def save_confusion_matrices(confusion_matrices):
     df_confusion_matrices = pd.DataFrame(confusion_matrices)
-    confusion_matrices_file_path = os.path.join(directory, 'accuracy_predictions', 'confusion_matrices_Q8_3.csv')
+    #confusion_matrices_file_path = os.path.join(directory, 'accuracy_predictions', 'confusion_matrices_Q8_4.csv')
+    confusion_matrices_file_path = '/Users/HP/src/feet_fracture_data/864/sequential/healthy-unhealthy/confusion_matrices_Q8_4.csv'
     df_confusion_matrices.to_csv(confusion_matrices_file_path, index=False)    
 
 def main():
