@@ -251,7 +251,7 @@ def save_confusion_matrices(confusion_matrices):
     df_confusion_matrices.to_csv(confusion_matrices_file_path, index=False)    
 
 def main():
-    train(50)
+    train(5)
 
 if __name__ == '__main__':
     root_dir_864 = os.path.join(my_path, '864')
