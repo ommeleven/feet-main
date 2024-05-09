@@ -99,23 +99,37 @@ def preprocess(train, val):
     
     return train_set, val_set, train_loader, val_loader
 
+def calculate_metrics(y_true, y_pred, num_classes):
+    metrics = []
+    for i in range(num_classes):
+        tn, fp, fn, tp = confusion_matrix([1 if x == i else 0 for x in y_true], [1 if x == i else 0 for x in y_pred]).ravel()
+        sensitivity = tp / (tp + fn)
+        specificity = tn / (tn + fp)
+        metrics.append((sensitivity, specificity))
+    return metrics
+
 def train(epochs):
     model = MyNetwork()
-    device = "cpu"
-
+    #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+    print(device)
     criterion = nn.NLLLoss()
-    optimizer = optim.Adam(model.classifier.parameters())
-    # Adjusted directories accordingly
-    csv_directory = os.path.join(directory, 'accuracy_epoch_conf.csv')
-
+    optimizer = optim.Adam(model.parameters())
+    
     train_set, val_set, train_loader, val_loader = preprocess(train_folder, test_folder)
 
     train_loss_list = []
     val_loss_list = []
     train_acc_list = []
     val_acc_list = []
+    train_sens_list = []
+    val_sens_list = []
+    train_spec_list = []
+    val_spec_list = []
 
     confusion_matrices = []
+
+    num_classes = len(train_set.classes)
 
     for epoch in range(epochs):
         train_loss = 0
@@ -131,7 +145,7 @@ def train(epochs):
 
         model.train()
         for inputs, labels, img_names in train_loader:
-            inputs, labels = inputs.to(device), labels.to(device)
+            inputs, labels, model = inputs.to(device), labels.to(device), model.to(device)
             optimizer.zero_grad()
             output = model.forward(inputs)
             loss = criterion(output, labels)
@@ -152,6 +166,10 @@ def train(epochs):
         train_accuracy = train_accuracy / len(train_loader)
         train_loss_list.append(train_loss)
         train_acc_list.append(train_accuracy)
+        
+        train_sensitivity, train_specificity = zip(*calculate_metrics(y_true_train, y_pred_train, num_classes))
+        train_sens_list.append(train_sensitivity)
+        train_spec_list.append(train_specificity)
 
         model.eval()
         with torch.no_grad():
@@ -175,8 +193,16 @@ def train(epochs):
         val_loss_list.append(val_loss)
         val_acc_list.append(val_accuracy)
 
+        val_sensitivity, val_specificity = zip(*calculate_metrics(y_true_val, y_pred_val, num_classes))
+        val_sens_list.append(val_sensitivity)
+        val_spec_list.append(val_specificity)
+
         print('Train Accuracy: ', train_accuracy)
         print('Validation Accuracy: ', val_accuracy)
+        print('Train Sensitivity: ', train_sensitivity)
+        print('Validation Sensitivity: ', val_sensitivity)
+        print('Train Specificity: ', train_specificity)
+        print('Validation Specificity: ', val_specificity)
         print('Epoch: {} \tTraining Loss: {:.6f} \tValidation Loss: {:.6f}'.format(epoch, train_loss, val_loss))
 
         train_matrix = confusion_matrix(y_true_train, y_pred_train)
@@ -189,14 +215,15 @@ def train(epochs):
         
         confusion_matrices.append({'Epoch': epoch, 'Train_matrix': train_matrix, 'Val_matrix': val_matrix})
 
-    plot_results(train_loss_list, val_loss_list, train_acc_list, val_acc_list)
+    plot_results(train_loss_list, val_loss_list, train_acc_list, val_acc_list, train_sens_list, val_sens_list, train_spec_list, val_spec_list, num_classes)
     save_confusion_matrices(confusion_matrices)
 
-def plot_results(train_loss_list, val_loss_list, train_acc_list, val_acc_list):
+def plot_results(train_loss_list, val_loss_list, train_acc_list, val_acc_list, train_sens_list, val_sens_list, train_spec_list, val_spec_list, num_classes):
     epochs = range(1, len(train_loss_list) + 1)
 
-    plt.figure(figsize=(10, 5))
-    plt.subplot(1, 2, 1)
+    plt.figure(figsize=(15, 5))
+
+    plt.subplot(1, 3, 1)
     plt.plot(epochs, train_loss_list, 'b', label='Training loss')
     plt.plot(epochs, val_loss_list, 'r', label='Validation loss')
     plt.title('Training and validation loss')
@@ -204,12 +231,23 @@ def plot_results(train_loss_list, val_loss_list, train_acc_list, val_acc_list):
     plt.ylabel('Loss')
     plt.legend()
 
-    plt.subplot(1, 2, 2)
+    plt.subplot(1, 3, 2)
     plt.plot(epochs, train_acc_list, 'b', label='Training accuracy')
     plt.plot(epochs, val_acc_list, 'r', label='Validation accuracy')
     plt.title('Training and validation accuracy')
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy')
+    plt.legend()
+
+    plt.subplot(1, 3, 3)
+    for i in range(num_classes):
+        plt.plot(epochs, [sens[i] for sens in train_sens_list], label=f'Training sensitivity class {i}')
+        plt.plot(epochs, [sens[i] for sens in val_sens_list], label=f'Validation sensitivity class {i}')
+        plt.plot(epochs, [spec[i] for spec in train_spec_list], label=f'Training specificity class {i}')
+        plt.plot(epochs, [spec[i] for spec in val_spec_list], label=f'Validation specificity class {i}')
+    plt.title('Training and validation sensitivity and specificity')
+    plt.xlabel('Epochs')
+    plt.ylabel('Metrics')
     plt.legend()
 
     plt.tight_layout() 
@@ -226,8 +264,10 @@ def main():
 
 if __name__ == '__main__':
     root_dir_864 = os.path.join(my_path, '864')
-    train_folder = os.path.join(root_dir_864, 'train_st_bin')
-    test_folder = os.path.join(root_dir_864, 'test_st_bin')
+    #train_folder = os.path.join(root_dir_864, 'train_st_bin')
+    train_folder = '/Users/HP/src/feet_fracture_data/864/sequential/healthy-unhealthy/train'
+    #test_folder = os.path.join(root_dir_864, 'test_st_bin')
+    test_folder = '/Users/HP/src/feet_fracture_data/864/sequential/healthy-unhealthy/val'
     directory = os.path.join(root_dir_864)
     
     main()
