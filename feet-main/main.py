@@ -1,9 +1,6 @@
-import torch
-import torchvision
+import sys
+from zipfile import PyZipFile
 
-device = torch.device("cuda")
-model = torchvision.models.resnet18(pretrained=False).to(device)
-model = model.to(device)
-
-print("Model loaded successfully")
-print("Device: ", device)
+zip_file = '/home/odange/repo/feet-main/864.zip'
+pzf = PyZipFile(zip_file)
+pzf.extractall()
