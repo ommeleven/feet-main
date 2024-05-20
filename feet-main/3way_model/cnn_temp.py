@@ -2,6 +2,9 @@ import torch
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torch.nn as nn
+import torchvision
+from torch import Tensor
+from typing import Type
 import torch.optim as optim
 import pandas as pd
 from sklearn.metrics import confusion_matrix
@@ -10,8 +13,13 @@ import os
 from PIL import Image
 from torch.utils.data import Dataset
 import matplotlib.pyplot as plt
+import numpy as np
+import SimpleITK as sitk
 
-from path import my_path
+from path import remote_path
+
+my_path = remote_path
+print(my_path)
 
 class CustomImageDataset(Dataset):
     def __init__(self, root_dir, transform=None, target_transform=None):
@@ -37,11 +45,33 @@ class CustomImageDataset(Dataset):
     def __len__(self):
         return len(self.image_paths)
 
+    def intensity_normalization(self, image):
+        # Convert image to 32-bit floating-point
+        image = image.astype(np.float32)
+        # Intensity normalization using Nyul et al. (2000) method
+        input_image = sitk.GetImageFromArray(image)
+        filter_intensity = sitk.N4BiasFieldCorrectionImageFilter()
+        output_image = filter_intensity.Execute(input_image)
+        return sitk.GetArrayFromImage(output_image)
+
+    def channel_wise_normalization(self, image):
+        # Channel-wise normalization to have zero mean and unit variance
+        mean = np.mean(image, axis=(0, 1, 2), keepdims=True)
+        std = np.std(image, axis=(0, 1, 2), keepdims=True)
+        return (image - mean) / std
+
     def __getitem__(self, idx):
         image_path = self.image_paths[idx]
-        bw_image = Image.open(image_path)
-        image = bw_image.resize((224, 224))  # Resize to 512x512
-        image = image.convert("RGB")  # Convert to grayscale
+        image = Image.open(image_path).convert('L')  # Convert to grayscale
+        #image = image.resize((512, 512))  # Resize image to 512x512
+        image = image.resize((224, 224))  # Resize image to 224x224
+
+        # Apply intensity normalization
+        #image = self.intensity_normalization(np.array(image))
+
+        # Apply channel-wise normalization
+        #image = self.channel_wise_normalization(image)
+
         label = self.labels[idx]
         image_name = self.image_names[idx]
 
@@ -55,24 +85,30 @@ class CustomImageDataset(Dataset):
 
 class MyNetwork(nn.Module):
     def __init__(self): 
-
+        self.device = torch.device('cuda')
+        print(self.device)
+        
         super(MyNetwork, self).__init__()
+        
         self.features = nn.Sequential(
-            nn.Conv2d(3, 6, 5),
+            nn.Conv2d(1, 6, 5),  # Only one input channel for grayscale images
             nn.ReLU(),
             nn.MaxPool2d(2, 2),
             nn.Conv2d(6, 16, 5),
             nn.ReLU(),
-            nn.MaxPool2d(2, 2),            
+            nn.MaxPool2d(2, 2),
         )
 
+        #  size for the first linear layer:
+        # (512 - 4) / 2 = 254 (after first pooling)
+        # (254 - 4) / 2 = 125 (after second pooling)
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(53*53*16, 1024),
+            nn.Linear(125*125*16, 1024),
             nn.ReLU(),
             nn.Linear(1024, 512),
             nn.ReLU(),
-            nn.Linear(512, 3),  # Adjusted for 3 classes
+            nn.Linear(512, 3),  # Output for 2 classes
             nn.LogSoftmax(dim=1)
         )
 
@@ -111,7 +147,147 @@ class MyNetwork(nn.Module):
         x = self.features(x)
         x = self.classifier(x)
         return x
-    
+
+class BasicBlock(nn.Module):
+    def __init__(
+        self, 
+        in_channels: int,
+        out_channels: int,
+        stride: int = 1,
+        expansion: int = 1,
+        downsample: nn.Module = None
+    ) -> None:
+        super(BasicBlock, self).__init__()
+        # Multiplicative factor for the subsequent conv2d layer's output channels.
+        # It is 1 for ResNet18 and ResNet34.
+        self.expansion = expansion
+        self.downsample = downsample
+        self.conv1 = nn.Conv2d(
+            in_channels, 
+            out_channels, 
+            kernel_size=3, 
+            stride=stride, 
+            padding=1,
+            bias=False
+        )
+        self.bn1 = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = nn.Conv2d(
+            out_channels, 
+            out_channels*self.expansion, 
+            kernel_size=3, 
+            padding=1,
+            bias=False
+        )
+        self.bn2 = nn.BatchNorm2d(out_channels*self.expansion)
+
+    def forward(self, x: Tensor) -> Tensor:
+        identity = x
+
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
+
+        if self.downsample is not None:
+            identity = self.downsample(x)
+
+        out += identity
+        out = self.relu(out)
+        return  out
+
+class ResNet(nn.Module):
+    def __init__(
+        self, 
+        img_channels: int,
+        num_layers: int,
+        block: Type[BasicBlock],
+        num_classes: int  = 3
+    ) -> None:
+        super(ResNet, self).__init__()
+        if num_layers == 18:
+            
+            layers = [2, 2, 2, 2]
+            self.expansion = 1
+        
+        self.in_channels = 64
+        self.conv1 = nn.Conv2d(
+            in_channels=img_channels,
+            out_channels=self.in_channels,
+            kernel_size=7, 
+            stride=2,
+            padding=3,
+            bias=False
+        )
+        self.bn1 = nn.BatchNorm2d(self.in_channels)
+        self.relu = nn.ReLU(inplace=True)
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+
+        self.layer1 = self._make_layer(block, 64, layers[0])
+        self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
+        self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
+        self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
+
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.fc = nn.Linear(512*self.expansion, num_classes)
+
+    def _make_layer(
+        self, 
+        block: Type[BasicBlock],
+        out_channels: int,
+        blocks: int,
+        stride: int = 1
+    ) -> nn.Sequential:
+        downsample = None
+        if stride != 1:
+          
+            downsample = nn.Sequential(
+                nn.Conv2d(
+                    self.in_channels, 
+                    out_channels*self.expansion,
+                    kernel_size=1,
+                    stride=stride,
+                    bias=False 
+                ),
+                nn.BatchNorm2d(out_channels * self.expansion),
+            )
+        layers = []
+        layers.append(
+            block(
+                self.in_channels, out_channels, stride, self.expansion, downsample
+            )
+        )
+        self.in_channels = out_channels * self.expansion
+
+        for i in range(1, blocks):
+            layers.append(block(
+                self.in_channels,
+                out_channels,
+                expansion=self.expansion
+            ))
+        return nn.Sequential(*layers)
+
+    def forward(self, x: Tensor) -> Tensor:
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
+        # The spatial dimension of the final layer's feature 
+        # map should be (7, 7) for all ResNets.
+        #print('Dimensions of the last convolutional feature map: ', x.shape)
+
+        x = self.avgpool(x)
+        x = torch.flatten(x, 1)
+        x = self.fc(x)
+
+        return x
 
 def preprocess(train, val):
     transformations = transforms.Compose([
@@ -130,13 +306,31 @@ def preprocess(train, val):
     return train_set, val_set, train_loader, val_loader
 
 def train(epochs):
-    model = MyNetwork()
-    device = "cpu"
+    
+    #model = MyNetwork()
+    model = ResNet(img_channels=1, num_layers=18, block=BasicBlock, num_classes=3)  
+    device = 'cuda'
 
-    criterion = nn.NLLLoss()
-    optimizer = optim.Adam(model.classifier.parameters())
-    # Adjusted directories accordingly
-    csv_directory = os.path.join(directory, 'accuracy_epoch_conf.csv')
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    '''
+    model = torchvision.models.resnet18(pretrained=True)
+    model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+    
+    device = 'cuda'
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    
+    # Freeze model weights
+    for param in model.parameters():
+        param.requires_grad = False
+    
+    # Modify the final layer to match the number of classes in your dataset
+    num_ftrs = model.fc.in_features
+    model.fc = nn.Linear(num_ftrs, 3)  # 3 classes: fracture, edema, healthy
+    '''
+    
+    csv_directory = os.path.join(directory, 'accuracy_epoch_conf_e50_lr001_1_224_2.csv')
 
     train_set, val_set, train_loader, val_loader = preprocess(train_folder, test_folder)
 
@@ -161,7 +355,7 @@ def train(epochs):
 
         model.train()
         for inputs, labels, img_names in train_loader:
-            inputs, labels = inputs.to(device), labels.to(device)
+            inputs, labels, model = inputs.to(device), labels.to(device), model.to(device)
             optimizer.zero_grad()
             output = model.forward(inputs)
             loss = criterion(output, labels)
@@ -219,10 +413,10 @@ def train(epochs):
         
         confusion_matrices.append({'Epoch': epoch, 'Train_matrix': train_matrix, 'Val_matrix': val_matrix})
 
-    plot_results(train_loss_list, val_loss_list, train_acc_list, val_acc_list)
+    plot_results(train_loss_list, val_loss_list, train_acc_list, val_acc_list, save_path='/home/odange/repo/feet_fracture_data/feet_fracture_data/graph_results/3-way/e50_lr001_1_224_2.png')
     save_confusion_matrices(confusion_matrices)
 
-def plot_results(train_loss_list, val_loss_list, train_acc_list, val_acc_list):
+def plot_results(train_loss_list, val_loss_list, train_acc_list, val_acc_list, save_path=None):
     epochs = range(1, len(train_loss_list) + 1)
 
     plt.figure(figsize=(10, 5))
@@ -232,6 +426,7 @@ def plot_results(train_loss_list, val_loss_list, train_acc_list, val_acc_list):
     plt.title('Training and validation loss')
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
+    plt.ylim(0, 1)  # Set y-axis limits for loss
     plt.legend()
 
     plt.subplot(1, 2, 2)
@@ -240,23 +435,31 @@ def plot_results(train_loss_list, val_loss_list, train_acc_list, val_acc_list):
     plt.title('Training and validation accuracy')
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy')
+    plt.ylim(0, 1)  # Set y-axis limits for accuracy
     plt.legend()
 
     plt.tight_layout()
-    plt.show()
+    
+    if save_path:
+        # Create the directory if it doesn't exist
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        plt.savefig(save_path, format='png')
+    else:
+        plt.show()
+    
 
 def save_confusion_matrices(confusion_matrices):
     df_confusion_matrices = pd.DataFrame(confusion_matrices)
-    confusion_matrices_file_path = os.path.join(directory, 'accuracy_predictions', 'confusion_matrices_Q8_3.csv')
+    confusion_matrices_file_path = os.path.join(directory, 'accuracy_predictions','3-way','confusion_matrices_Q8_e50_lr001_1_224_2.csv')
     df_confusion_matrices.to_csv(confusion_matrices_file_path, index=False)    
 
 def main():
-    train(5)
+    train(200)
 
 if __name__ == '__main__':
-    root_dir_864 = os.path.join(my_path, '864')
-    train_folder = os.path.join(root_dir_864, 'train_st')
-    test_folder = os.path.join(root_dir_864, 'test_st')
-    directory = os.path.join(root_dir_864)
+    root_dir = os.path.join(my_path)
+    train_folder = os.path.join(root_dir, '3-way', 'train_oversampling')
+    test_folder = os.path.join(root_dir, '3-way', 'test')
+    directory = os.path.join(root_dir)
     
     main()
