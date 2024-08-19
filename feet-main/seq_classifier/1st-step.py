@@ -27,7 +27,7 @@ class CustomImageDataset(Dataset):
         self.target_transform = target_transform
         self.train = train
 
-        self.classes = ['edema', 'fracture'] 
+        self.classes = ['healthy', 'unhealthy'] 
         self.image_paths = []
         self.labels = []
         self.image_names = []
@@ -64,7 +64,7 @@ class CustomImageDataset(Dataset):
 
 class MyNetwork(nn.Module):
     def __init__(self): 
-        self.device = torch.device('cuda')
+        self.device = device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         print(self.device)
         
         super(MyNetwork, self).__init__()
@@ -162,7 +162,8 @@ class ResNet(nn.Module):
             self.expansion = 1
         
         self.in_channels = 64
-    
+        self.dropout = nn.Dropout(0.2)
+        
         self.conv1 = nn.Conv2d(
             in_channels=img_channels,
             out_channels=self.in_channels,
@@ -220,6 +221,8 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x: Tensor) -> Tensor:
+
+        x = self.dropout(x)
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
@@ -241,15 +244,18 @@ class ResNet(nn.Module):
 
 def preprocess(train, val):
     transformations = transforms.Compose([
-        transforms.ToTensor(),
+    transforms.Grayscale(num_output_channels=1),  # Ensure the image is single-channel
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    transforms.Normalize([0.485], [0.229])  # Normalization for single-channel image
     ])
 
     # Define the dataset
-    train_set = CustomImageDataset(train, transform=transformations, train=True)
-    val_set = CustomImageDataset(val, transform=transformations, train=False)
+    train_set = CustomImageDataset(train, transform=transformations)
+    val_set = CustomImageDataset(val, transform=transformations)
 
     # Define the batch size
-    batch_size = 30
+    batch_size = 64
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True)
     val_loader = torch.utils.data.DataLoader(val_set, batch_size=batch_size, shuffle=True)
     
@@ -257,12 +263,14 @@ def preprocess(train, val):
 
 def train(epochs):
     model = ResNet(img_channels=1, num_layers=18, block=BasicBlock, num_classes=2)  
-    device = "cuda"
+    device = "cuda:3"
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
+    #optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.8)
+    
     # Adjusted directories accordingly
-    csv_directory = os.path.join(directory, 'accuracy_epoch_conf_e50_lr001.csv')
+    csv_directory = os.path.join(directory, 'accuracy_epoch_conf_e50_lr001_s1a9d.csv')
 
     train_set, val_set, train_loader, val_loader = preprocess(train_folder, test_folder)
 
@@ -287,7 +295,9 @@ def train(epochs):
 
         model.train()
         for inputs, labels, img_names in train_loader:
-            inputs, labels, model = inputs.to(device), labels.to(device), model.to(device)
+            inputs = inputs.to(device)
+            labels = labels.to(device)
+            model = model.to(device)
             optimizer.zero_grad()
             output = model.forward(inputs)
             loss = criterion(output, labels)
@@ -345,7 +355,7 @@ def train(epochs):
         
         confusion_matrices.append({'Epoch': epoch, 'Train_matrix': train_matrix, 'Val_matrix': val_matrix})
 
-    plot_results(train_loss_list, val_loss_list, train_acc_list, val_acc_list, save_path='/home/odange/repo/feet_fracture_data/feet_fracture_data/graph_results/sequential/healthy-unhealthy/e50_lr_001.png')
+    plot_results(train_loss_list, val_loss_list, train_acc_list, val_acc_list, save_path='/home/odange/repo/feet_fracture_data/feet_fracture_data/graph_results/sequential/healthy-unhealthy/e50_lr_001_s1a9d.png')
     save_confusion_matrices(confusion_matrices)
 
 def plot_results(train_loss_list, val_loss_list, train_acc_list, val_acc_list, save_path=None):
@@ -382,19 +392,20 @@ def plot_results(train_loss_list, val_loss_list, train_acc_list, val_acc_list, s
 
 def save_confusion_matrices(confusion_matrices):
     df_confusion_matrices = pd.DataFrame(confusion_matrices)
-    confusion_matrices_file_path = os.path.join(directory, 'accuracy_predictions','sequential', '1st-step','confusion_matrices_Q8_e50_lr_001.csv')
+    confusion_matrices_file_path = os.path.join(directory, 'accuracy_predictions','sequential', '1st-step','confusion_matrices_Q8_e50_lr_001_s1a9d.csv')
     df_confusion_matrices.to_csv(confusion_matrices_file_path, index=False)    
 
 def main():
     train(50)
+    #torch.save(model.state_dict(), 'model_1st_step.pth')
 
 if __name__ == '__main__':
     root_dir = os.path.join(my_path)
     #train_folder = os.path.join(root_dir, 'sequential', 'healthy-unhealthy', 'train')
-    train_folder = '/home/odange/repo/feet_fracture_data/feet_fracture_data/2-way/train_st_bin'
+    train_folder = '/home/odange/repo/feet_fracture_data/feet_fracture_data/sequential/healthy-unhealthy_os/train'
     #test_folder = os.path.join(root_dir, 'sequential', 'healthy-unhealthy', 'val')
     #test_folder = '/home/odange/repo/feet_fracture_data/feet_fracture_data/sequential/healthy-unhealthy/val'
-    test_folder = '/home/odange/repo/feet_fracture_data/feet_fracture_data/2-way/test_st_bin'
+    test_folder = '/home/odange/repo/feet_fracture_data/feet_fracture_data/sequential/healthy-unhealthy_os/val'
     directory = os.path.join(root_dir)
     
     main()

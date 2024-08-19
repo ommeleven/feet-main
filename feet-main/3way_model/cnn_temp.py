@@ -3,9 +3,11 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torch.nn as nn
 import torchvision
+from torchvision.models import resnet18, ResNet18_Weights
 from torch import Tensor
 from typing import Type
 import torch.optim as optim
+import torchvision.models as models
 import pandas as pd
 from sklearn.metrics import confusion_matrix
 import csv
@@ -15,7 +17,6 @@ from torch.utils.data import Dataset
 import matplotlib.pyplot as plt
 import numpy as np
 import SimpleITK as sitk
-
 from path import remote_path
 
 my_path = remote_path
@@ -104,7 +105,7 @@ class MyNetwork(nn.Module):
         # (254 - 4) / 2 = 125 (after second pooling)
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(125*125*16, 1024),
+            nn.Linear(53*53*16, 1024),  # Update the input size here
             nn.ReLU(),
             nn.Linear(1024, 512),
             nn.ReLU(),
@@ -291,15 +292,19 @@ class ResNet(nn.Module):
 
 def preprocess(train, val):
     transformations = transforms.Compose([
-        transforms.ToTensor(),
+    transforms.Grayscale(num_output_channels=1),  # Ensure the image is single-channel
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    #transforms.Normalize([0.485], [0.229])  # Normalization for single-channel image
+    #transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    #transforms.Normalize(mean=[0.485], std=[0.229])
     ])
-
     # Define the dataset
     train_set = CustomImageDataset(train, transform=transformations)
     val_set = CustomImageDataset(val, transform=transformations)
 
     # Define the batch size
-    batch_size = 30
+    batch_size = 16
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True)
     val_loader = torch.utils.data.DataLoader(val_set, batch_size=batch_size, shuffle=True)
     
@@ -308,29 +313,48 @@ def preprocess(train, val):
 def train(epochs):
     
     #model = MyNetwork()
-    model = ResNet(img_channels=1, num_layers=18, block=BasicBlock, num_classes=3)  
+    #model = ResNet(img_channels=1, num_layers=18, block=BasicBlock, num_classes=3)  
+    model = torchvision.models.resnet18(pretrained=True)
+    model.fc = nn.Linear(model.fc.in_features, 3)
     device = 'cuda'
+    model.conv1 = nn.Conv2d(1, model.conv1.out_channels, kernel_size=model.conv1.kernel_size, 
+                                        stride=model.conv1.stride, padding=model.conv1.padding, bias=False)
+        
 
+    #weight_for_edema = 0.36
+    #weight_for_fracture = 0.14
+    #weight_for_healthy = 0.5
+    #class_weights = torch.tensor([0.36, 0.14, 0.50], dtype=torch.float32).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
+    #optimizer = optim.SGD(model.parameters(), lr=0.003, momentum=0.9)
+    
     '''
-    model = torchvision.models.resnet18(pretrained=True)
+    #model = torchvision.models.resnet18(weights=ResNet18_Weights.DEFAULT)
+    #model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+    model = torchvision.models.resnet18(weights=ResNet18_Weights.DEFAULT)
+    
+    # Modify the first convolutional layer to accept single-channel (grayscale) input
     model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+    
+    # initialize the weights based on the existing model
+    with torch.no_grad():
+        model.conv1.weight = nn.Parameter(model.conv1.weight.mean(dim=1, keepdim=True))
     
     device = 'cuda'
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     
     # Freeze model weights
     for param in model.parameters():
-        param.requires_grad = False
-    
-    # Modify the final layer to match the number of classes in your dataset
-    num_ftrs = model.fc.in_features
-    model.fc = nn.Linear(num_ftrs, 3)  # 3 classes: fracture, edema, healthy
+        param.requires_grad = True
     '''
+    # Modify the final layer to match the number of classes in your dataset
+    #num_ftrs = model.fc.in_features
+    #model.fc = nn.Linear(num_ftrs, 3)  # 3 classes: fracture, edema, healthy
+    #model.fc = torch.nn.Linear(model.fc.in_features, 3)
     
-    csv_directory = os.path.join(directory, 'accuracy_epoch_conf_e50_lr001_1_224_2.csv')
+    csv_directory = os.path.join(directory, 'accuracy_epoch_conf_e50.csv')
 
     train_set, val_set, train_loader, val_loader = preprocess(train_folder, test_folder)
 
@@ -413,8 +437,9 @@ def train(epochs):
         
         confusion_matrices.append({'Epoch': epoch, 'Train_matrix': train_matrix, 'Val_matrix': val_matrix})
 
-    plot_results(train_loss_list, val_loss_list, train_acc_list, val_acc_list, save_path='/home/odange/repo/feet_fracture_data/feet_fracture_data/graph_results/3-way/e50_lr001_1_224_2.png')
+    plot_results(train_loss_list, val_loss_list, train_acc_list, val_acc_list, save_path='/home/odange/repo/feet_fracture_data/graph_results/3_way/e50.png')
     save_confusion_matrices(confusion_matrices)
+    #print(model.fc1(x).size())
 
 def plot_results(train_loss_list, val_loss_list, train_acc_list, val_acc_list, save_path=None):
     epochs = range(1, len(train_loss_list) + 1)
@@ -450,16 +475,21 @@ def plot_results(train_loss_list, val_loss_list, train_acc_list, val_acc_list, s
 
 def save_confusion_matrices(confusion_matrices):
     df_confusion_matrices = pd.DataFrame(confusion_matrices)
-    confusion_matrices_file_path = os.path.join(directory, 'accuracy_predictions','3-way','confusion_matrices_Q8_e50_lr001_1_224_2.csv')
+    #confusion_matrices_file_path = os.path.join(directory, 'accuracy_predictions','3_way','confusion_matrices_Q8_e50.csv')
+    confusion_matrices_file_path = '/home/odange/repo/feet_fracture_data/accuracy_predictions/3_way/confusion_matrices_Q8_e50.csv'
     df_confusion_matrices.to_csv(confusion_matrices_file_path, index=False)    
 
 def main():
-    train(200)
+
+    #torch.cuda.empty_cache()
+    train(50)
 
 if __name__ == '__main__':
     root_dir = os.path.join(my_path)
-    train_folder = os.path.join(root_dir, '3-way', 'train_oversampling')
-    test_folder = os.path.join(root_dir, '3-way', 'test')
+    #train_folder = os.path.join(root_dir, '3-way', 'train_s_n')
+    train_folder = '/home/odange/repo/feet_fracture_data/3_way/train'
+    #test_folder = os.path.join(root_dir, '3-way', 'test_s1_n')
+    test_folder = '/home/odange/repo/feet_fracture_data/3_way/val'
     directory = os.path.join(root_dir)
     
     main()

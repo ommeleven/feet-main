@@ -16,20 +16,20 @@ def split_dataset(root_dir, train_dir, test_dir, test_size=0.2, seed=42):
             for image_name in train_images:
                 src = os.path.join(label_dir, image_name)
                 dst = os.path.join(train_dir, label, image_name)
-                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                #os.makedirs(os.path.dirname(dst), exist_ok=True)
                 shutil.copy(src, dst)
             
             # Move images to test directory
             for image_name in test_images:
                 src = os.path.join(label_dir, image_name)
                 dst = os.path.join(test_dir, label, image_name)
-                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                #os.makedirs(os.path.dirname(dst), exist_ok=True)
                 shutil.copy(src, dst)
                 
 def main():
-    root_dir = '/Users/HP/src/feet_fracture_data/864/all_images'
-    train_dir = '/Users/HP/src/feet_fracture_data/864/train_st'
-    test_dir = '/Users/HP/src/feet_fracture_data/864/test_st'
+    root_dir = '/home/odange/repo/feet_fracture_data/all images/all_images_3way'
+    train_dir = '/home/odange/repo/feet_fracture_data/3_way/train'
+    test_dir = '/home/odange/repo/feet_fracture_data/3_way/val'
     
     split_dataset(root_dir, train_dir, test_dir)
 

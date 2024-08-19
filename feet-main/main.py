@@ -12,6 +12,8 @@ def calculate_metrics(confusion_matrix):
     sensitivity = TP / (TP + FN)
     specificity = TN / (TN + FP)
     total_accuracy = (TP + TN) / np.sum(confusion_matrix)
+    total_accuracy = TP / np.sum(confusion_matrix)
+    
     #total_loss = (FP + FN) / np.sum(confusion_matrix)
     
     metrics = {
@@ -33,13 +35,13 @@ def calculate_metrics(confusion_matrix):
 
 # Example usage:
 
-'''
-conf_matrix = np.array([[  0  ,49,   0],
- [ 22 ,115,   0],
- [  0   ,7 ,299]])
+
+conf_matrix = np.array([[14, 33 , 2],
+ [53 ,29, 19],
+ [ 6  ,6 ,54]])
 metrics_output = calculate_metrics(conf_matrix)
 print(metrics_output)
-'''
+1
 
 def count_files_in_folder(folder_path):
     # Check if the folder exists
@@ -61,7 +63,6 @@ def count_files_in_folder(folder_path):
     
     return file_count
 
-# Example usage
-folder_path = '/home/odange/repo/feet_fracture_data/feet_fracture_data/all_images/healthy_sagt1s'
-file_count = count_files_in_folder(folder_path)
-print(f"Total number of files in '{folder_path}': {file_count}")
+folder_path = '/home/odange/repo/feet_fracture_data/feet_fracture_data/sequential/healthy-unhealthy/train/healthy'
+#file_count = count_files_in_folder(folder_path)
+#print(f"Total number of files in '{folder_path}': {file_count}")
