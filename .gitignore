@@ -1,4 +1,34 @@
+# --- Clinical data: never commit ---
+data/
+private/
+results/
+*.jpg
+*.jpeg
+*.dcm
+*.nii
+*.nii.gz
+*.zip
+*.csv
+*.xlsx
+*.numbers
+*.json
+*.lnk
+
+# Allow documentation figures
+!docs/figures/*.png
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+*.pt
+*.pth
+
+# --- OS / editor ---
 .DS_Store
+Icon?
 .sync/
-Icon\r
-P001 SAGIR/
+.vscode/
+.idea/
